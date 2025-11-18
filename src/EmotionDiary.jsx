@@ -2,27 +2,29 @@
 import { useState, useEffect } from "react";
 import { initializeApp } from "firebase/app";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
-import { getGenerativeModel } from "firebase/ai";
+import { getAI, getGenerativeModel, GoogleAIBackend } from "firebase/ai";
 
-// 1. Firebase 설정 (웹 앱 API Key 포함 필수)
+// 1. Firebase 설정
 const firebaseConfig = {
-  apiKey: "AIzaSyAiF6AukDhkj1hbaoKK6Iw9imrmWJFnNFQ",
+  apiKey: "AIzaSyAiF6AukDhkj1hbaoKK6Iw9imrmWJFnNFQ", // 기존 웹 앱 API Key
   authDomain: "fir-78f97.firebaseapp.com",
-  databaseURL: "https://fir-78f97-default-rtdb.firebaseio.com",
   projectId: "fir-78f97",
   storageBucket: "fir-78f97.firebasestorage.app",
   messagingSenderId: "315472783806",
   appId: "1:315472783806:web:1b6d0ba68bac5bc38431ef",
-  measurementId: "G-MVQ5YFF61T",
 };
+
 // 2. Firebase 초기화
 const app = initializeApp(firebaseConfig);
 
-// 3. App Check 초기화 (무료 reCAPTCHA v3)
+// 3. App Check 초기화
 initializeAppCheck(app, {
   provider: new ReCaptchaV3Provider("여기에_발급받은_무료_사이트키"),
   isTokenAutoRefreshEnabled: true,
 });
+
+// 4. AI Logic 초기화 (v12 SDK 기준)
+const ai = getAI(app, { backend: new GoogleAIBackend() });
 
 export default function EmotionDiary() {
   const [diary, setDiary] = useState("");
@@ -30,9 +32,9 @@ export default function EmotionDiary() {
   const [loading, setLoading] = useState(false);
   const [count, setCount] = useState(0);
 
-  const MAX_DAILY = 3; // 하루 최대 분석 횟수
+  const MAX_DAILY = 3; // 하루 최대 호출 횟수
 
-  // 4. 로컬Storage로 하루 횟수 유지
+  // 5. 로컬Storage로 하루 횟수 유지
   useEffect(() => {
     const saved = localStorage.getItem("dailyCount");
     const today = localStorage.getItem("dailyCountDate");
@@ -51,12 +53,12 @@ export default function EmotionDiary() {
     localStorage.setItem("dailyCount", count);
   }, [count]);
 
-  // 5. 감정 분석 함수
+  // 6. 감정 분석 함수
   const analyzeEmotion = async () => {
     if (!diary.trim()) return;
-    if (loading) return; // 중복 방지
+    if (loading) return;
     if (count >= MAX_DAILY) {
-      alert("오늘은 최대 분석 횟수에 도달했습니다.");
+      alert("오늘 최대 분석 횟수에 도달했습니다.");
       return;
     }
 
@@ -64,19 +66,19 @@ export default function EmotionDiary() {
     setCount((prev) => prev + 1);
 
     try {
-      const model = getGenerativeModel(app, {
-        model: "gemini-1.5-flash",
+      const model = getGenerativeModel(ai, {
+        model: "gemini-2.5-flash", // 최신 모델로 변경
         systemInstruction:
-          "당신은 감정 분석 도우미입니다. 아래 일기 내용을 분석하여 현재 감정을 요약하고, 긍정/부정, 주요 감정 종류를 간결하게 리포트해 주세요.",
+          "당신은 감정 분석 도우미입니다. 일기 내용을 분석하여 현재 감정을 요약하고, 긍정/부정, 주요 감정 종류를 간결하게 리포트해 주세요.",
       });
 
-      const response = await model.generate({ prompt: diary });
-      setEmotionResult(response.text);
+      const result = await model.generateContent(diary);
+      const responseText = result.response.text();
+      setEmotionResult(responseText);
     } catch (err) {
       console.error("감정 분석 실패:", err);
       setEmotionResult("감정 분석 중 오류가 발생했습니다.");
     } finally {
-      // 5초 쿨다운 적용
       setTimeout(() => setLoading(false), 5000);
     }
   };
