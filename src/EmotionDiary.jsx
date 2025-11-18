@@ -5,14 +5,13 @@ import { getAI, getGenerativeModel, GoogleAIBackend } from "firebase/ai";
 
 // 1. Firebase 설정
 const firebaseConfig = {
-  apiKey: "AIzaSyAiF6AukDhkj1hbaoKK6Iw9imrmWJFnNFQ", // 기존 웹 앱 API Key
-  authDomain: "fir-78f97.firebaseapp.com",
-  projectId: "fir-78f97",
-  storageBucket: "fir-78f97.firebasestorage.app",
-  messagingSenderId: "315472783806",
-  appId: "1:315472783806:web:1b6d0ba68bac5bc38431ef",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
-
 // 2. Firebase 초기화
 const app = initializeApp(firebaseConfig);
 
