@@ -102,9 +102,21 @@ export default function EmotionDiary() {
       >
         {loading ? "분석 중..." : "감정 분석"}
       </button>
+
       <p>
         오늘 사용한 횟수: {count}/{MAX_DAILY}
       </p>
+      <button
+        onClick={() => {
+          localStorage.removeItem("dailyCount");
+          localStorage.removeItem("dailyCountDate");
+          setCount(0);
+          alert("하루 카운트 초기화 완료");
+        }}
+      >
+        하루 카운트 초기화
+      </button>
+
       <h3>분석 결과:</h3>
       <pre
         style={{
