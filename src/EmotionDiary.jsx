@@ -1,32 +1,67 @@
-// EmotionDiary.jsx
-import { useState } from "react";
+// src/EmotionDiary.jsx
+import { useState, useEffect } from "react";
 import { initializeApp } from "firebase/app";
 import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 import { getGenerativeModel } from "firebase/ai";
 
+// 1. Firebase 설정 (웹 앱 API Key 포함 필수)
 const firebaseConfig = {
   apiKey: "AIzaSyAiF6AukDhkj1hbaoKK6Iw9imrmWJFnNFQ",
   authDomain: "fir-78f97.firebaseapp.com",
+  databaseURL: "https://fir-78f97-default-rtdb.firebaseio.com",
   projectId: "fir-78f97",
   storageBucket: "fir-78f97.firebasestorage.app",
   messagingSenderId: "315472783806",
   appId: "1:315472783806:web:1b6d0ba68bac5bc38431ef",
+  measurementId: "G-MVQ5YFF61T",
 };
-
+// 2. Firebase 초기화
 const app = initializeApp(firebaseConfig);
 
-// App Check (무료 reCAPTCHA v3)
+// 3. App Check 초기화 (무료 reCAPTCHA v3)
 initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider("무료 발급받은 사이트키"),
+  provider: new ReCaptchaV3Provider("여기에_발급받은_무료_사이트키"),
   isTokenAutoRefreshEnabled: true,
 });
 
 export default function EmotionDiary() {
   const [diary, setDiary] = useState("");
   const [emotionResult, setEmotionResult] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [count, setCount] = useState(0);
 
+  const MAX_DAILY = 3; // 하루 최대 분석 횟수
+
+  // 4. 로컬Storage로 하루 횟수 유지
+  useEffect(() => {
+    const saved = localStorage.getItem("dailyCount");
+    const today = localStorage.getItem("dailyCountDate");
+    const now = new Date().toDateString();
+
+    if (saved && today === now) {
+      setCount(Number(saved));
+    } else {
+      localStorage.setItem("dailyCount", 0);
+      localStorage.setItem("dailyCountDate", now);
+      setCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("dailyCount", count);
+  }, [count]);
+
+  // 5. 감정 분석 함수
   const analyzeEmotion = async () => {
     if (!diary.trim()) return;
+    if (loading) return; // 중복 방지
+    if (count >= MAX_DAILY) {
+      alert("오늘은 최대 분석 횟수에 도달했습니다.");
+      return;
+    }
+
+    setLoading(true);
+    setCount((prev) => prev + 1);
 
     try {
       const model = getGenerativeModel(app, {
@@ -35,19 +70,19 @@ export default function EmotionDiary() {
           "당신은 감정 분석 도우미입니다. 아래 일기 내용을 분석하여 현재 감정을 요약하고, 긍정/부정, 주요 감정 종류를 간결하게 리포트해 주세요.",
       });
 
-      const response = await model.generate({
-        prompt: diary,
-      });
-
+      const response = await model.generate({ prompt: diary });
       setEmotionResult(response.text);
-    } catch (error) {
-      console.error("감정 분석 실패:", error);
+    } catch (err) {
+      console.error("감정 분석 실패:", err);
       setEmotionResult("감정 분석 중 오류가 발생했습니다.");
+    } finally {
+      // 5초 쿨다운 적용
+      setTimeout(() => setLoading(false), 5000);
     }
   };
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20, maxWidth: 600, margin: "0 auto" }}>
       <h2>감정 일기</h2>
       <textarea
         rows={10}
@@ -55,13 +90,30 @@ export default function EmotionDiary() {
         placeholder="오늘의 감정을 일기로 적어보세요..."
         value={diary}
         onChange={(e) => setDiary(e.target.value)}
+        style={{ width: "100%", padding: 10 }}
       />
       <br />
-      <button onClick={analyzeEmotion} style={{ marginTop: 10 }}>
-        감정 분석
+      <button
+        onClick={analyzeEmotion}
+        disabled={loading || count >= MAX_DAILY}
+        style={{ marginTop: 10, padding: "8px 16px" }}
+      >
+        {loading ? "분석 중..." : "감정 분석"}
       </button>
+      <p>
+        오늘 사용한 횟수: {count}/{MAX_DAILY}
+      </p>
       <h3>분석 결과:</h3>
-      <pre>{emotionResult}</pre>
+      <pre
+        style={{
+          background: "#f0f0f0",
+          padding: 10,
+          minHeight: 50,
+          whiteSpace: "pre-wrap",
+        }}
+      >
+        {emotionResult}
+      </pre>
     </div>
   );
 }
