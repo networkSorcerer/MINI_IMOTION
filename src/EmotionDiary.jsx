@@ -1,7 +1,6 @@
 // src/EmotionDiary.jsx
 import { useState, useEffect } from "react";
 import { initializeApp } from "firebase/app";
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 import { getAI, getGenerativeModel, GoogleAIBackend } from "firebase/ai";
 
 // 1. Firebase 설정
@@ -16,12 +15,6 @@ const firebaseConfig = {
 
 // 2. Firebase 초기화
 const app = initializeApp(firebaseConfig);
-
-// 3. App Check 초기화
-initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider("6LfXPRAsAAAAANdrYW7WTKyhNsRbDkjIroz_OmWn"),
-  isTokenAutoRefreshEnabled: true,
-});
 
 // 4. AI Logic 초기화 (v12 SDK 기준)
 const ai = getAI(app, { backend: new GoogleAIBackend() });
