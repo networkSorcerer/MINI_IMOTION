@@ -19,7 +19,7 @@ const app = initializeApp(firebaseConfig);
 
 // 3. App Check 초기화
 initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider("여기에_발급받은_무료_사이트키"),
+  provider: new ReCaptchaV3Provider("6LfXPRAsAAAAANdrYW7WTKyhNsRbDkjIroz_OmWn"),
   isTokenAutoRefreshEnabled: true,
 });
 
