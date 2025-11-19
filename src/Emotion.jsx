@@ -1,16 +1,18 @@
 // src/EmotionDiary.jsx
-import axios from "axios";
 import { useState, useEffect } from "react";
+import Sentiment from "sentiment";
 
-export default function EmotionDiary() {
+const sentiment = new Sentiment();
+
+export default function Emotion() {
   const [diary, setDiary] = useState("");
   const [emotionResult, setEmotionResult] = useState("");
-  const [loading, setLoading] = useState(false);
   const [count, setCount] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  const MAX_DAILY = 3; // 하루 최대 호출 횟수
+  const MAX_DAILY = 3;
 
-  // 5. 로컬Storage로 하루 횟수 유지
+  // 하루 사용 횟수 로컬스토리지 유지
   useEffect(() => {
     const saved = localStorage.getItem("dailyCount");
     const today = localStorage.getItem("dailyCountDate");
@@ -29,34 +31,25 @@ export default function EmotionDiary() {
     localStorage.setItem("dailyCount", count);
   }, [count]);
 
-  // 6. 감정 분석 함수
-  const analyzeEmotion = async () => {
+  const analyzeEmotion = () => {
     if (!diary.trim()) return;
-    if (loading) return;
     if (count >= MAX_DAILY) {
       alert("오늘 최대 분석 횟수에 도달했습니다.");
       return;
     }
 
     setLoading(true);
+    setCount((prev) => prev + 1);
 
-    try {
-      const response = await axios.post(
-        "https://tobyyada.pythonanywhere.com/analyze",
-        {
-          text: diary,
-        }
-      );
-
-      console.log("ddddddd", response.data);
-
-      setEmotionResult(response.data); // 분석 결과 저장
-      setCount((prev) => prev + 1); // 호출 횟수 증가
-    } catch (error) {
-      console.log("eeee", error);
-    } finally {
-      setLoading(false);
-    }
+    const result = sentiment.analyze(diary);
+    const summary = `
+점수: ${result.score}
+긍정 단어: ${result.positive.join(", ") || "없음"}
+부정 단어: ${result.negative.join(", ") || "없음"}
+총 단어 수: ${result.words.length}
+`;
+    setEmotionResult(summary);
+    setTimeout(() => setLoading(false), 500); // 간단한 로딩
   };
 
   return (
@@ -82,7 +75,8 @@ export default function EmotionDiary() {
       <p>
         오늘 사용한 횟수: {count}/{MAX_DAILY}
       </p>
-      {/* <button
+
+      <button
         onClick={() => {
           localStorage.removeItem("dailyCount");
           localStorage.removeItem("dailyCountDate");
@@ -91,7 +85,7 @@ export default function EmotionDiary() {
         }}
       >
         하루 카운트 초기화
-      </button> */}
+      </button>
 
       <h3>분석 결과:</h3>
       <pre
@@ -102,7 +96,7 @@ export default function EmotionDiary() {
           whiteSpace: "pre-wrap",
         }}
       >
-        {emotionResult ? <p>{emotionResult.result}</p> : <p></p>}
+        {emotionResult}
       </pre>
     </div>
   );
